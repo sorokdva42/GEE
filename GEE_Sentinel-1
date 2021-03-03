@@ -1,0 +1,74 @@
+// imports
+var imageCollection = ee.ImageCollection("COPERNICUS/S1_GRD"),
+    roi = 
+    /* color: #98ff00 */
+    /* shown: false */
+    ee.Geometry.Point([23.87435712625881, 47.95488269805001]);// can change and use for your territory
+
+
+// Filter the collection for the VV product from the descending track
+var collectionVV = ee.ImageCollection('COPERNICUS/S1_GRD')
+    .filter(ee.Filter.eq('instrumentMode', 'IW'))
+    .filter(ee.Filter.listContains('transmitterReceiverPolarisation', 'VV'))
+    .filter(ee.Filter.eq('orbitProperties_pass', 'DESCENDING'))
+    .filterBounds(roi)
+    .select(['VV']);
+print(collectionVV);
+
+// Filter the collection for the VH product from the descending track
+var collectionVH = ee.ImageCollection('COPERNICUS/S1_GRD')
+    .filter(ee.Filter.eq('instrumentMode', 'IW'))
+    .filter(ee.Filter.listContains('transmitterReceiverPolarisation', 'VH'))
+    .filter(ee.Filter.eq('orbitProperties_pass', 'DESCENDING'))
+    .filterBounds(roi)
+    .select(['VH']);
+print(collectionVH);
+
+var vis = {
+  min: -12,
+  max: -7,
+  palette: [
+      'FFFFFF', 'CE7E45', 'DF923D', 'F1B555', 'FCD163', '99B718',
+      '74A901', '66A000', '529400', '3E8601', '207401', '056201',
+      '004C00', '023B01', '012E01', '011D01', '011301'
+  ]
+};
+//centre the map 
+Map.centerObject(roi, 13);
+
+var VV = collectionVV.median();
+var VH = collectionVH.median();
+
+// Adding the VV 
+Map.addLayer(VV, vis, 'VV',false);
+
+//Calculate the VH 
+
+Map.addLayer(VH, vis, 'VH',false);
+
+// Create a 4 band stack by selecting from different periods (seasons)
+var VV_winter = ee.Image(collectionVV.filterDate('2019-12-01', '2020-02-28').median());
+var VV2_spring = ee.Image(collectionVV.filterDate('2020-03-01', '2020-05-31').median());
+var VV_summer = ee.Image(collectionVV.filterDate('2020-06-01', '2020-08-31').median());
+var VV_autumn = ee.Image(collectionVV.filterDate('2020-09-01', '2020-12-31').median());
+
+var VH_winter = ee.Image(collectionVH.filterDate('2019-12-01', '2020-02-28').median());
+var VH2_spring = ee.Image(collectionVH.filterDate('2020-03-01', '2020-05-31').median());
+var VH_summer = ee.Image(collectionVH.filterDate('2020-06-01', '2020-08-31').median());
+var VH_autumn = ee.Image(collectionVH.filterDate('2020-09-01', '2020-12-31').median());
+
+
+//Add to map
+Map.addLayer(VV_winter.addBands(VV2_spring).addBands(VV_summer).addBands(VV_autumn), {min: -12, max: -7}, 'Season composite_VV',true);
+
+Map.addLayer(VH_winter.addBands(VH2_spring).addBands(VH_summer).addBands(VH_autumn), {min: -12, max: -7}, 'Season composite_VH',false);
+
+Map.addLayer(VV_winter,vis,'VV_winter',false);
+Map.addLayer(VV2_spring,vis,'VV2_spring',false);
+Map.addLayer(VV_summer,vis,'VV_summer',false);
+Map.addLayer(VV_autumn,vis,'VV_autumn',false);
+
+Map.addLayer(VH_winter,vis,'VH_winter',false);
+Map.addLayer(VH2_spring,vis,'VH2_spring',false);
+Map.addLayer(VH_summer,vis,'VH_summer',false);
+Map.addLayer(VH_autumn,vis,'VH_autumn',false);
